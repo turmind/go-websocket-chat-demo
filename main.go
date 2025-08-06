@@ -19,12 +19,12 @@ var (
 func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
-		log.WithField("PORT", port).Fatal("$PORT must be set")
+		port = "8080"
 	}
 
 	redisURL := os.Getenv("REDIS_URL")
 	if redisURL == "" {
-		log.WithField("REDIS_URL", redisURL).Fatal("$REDIS_URL must be set")
+		redisURL = "redis://localhost:6379"
 	}
 	redisPool, err := redigo.NewRedisPoolFromURL(redisURL)
 	if err != nil {
