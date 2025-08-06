@@ -45,7 +45,8 @@ func main() {
 			if err == nil {
 				break
 			}
-			log.Error(err)
+			log.WithField("err", err).Error("Redis receiver error, reconnecting in 5 seconds...")
+			time.Sleep(5 * time.Second)
 		}
 	}()
 
@@ -59,7 +60,8 @@ func main() {
 			if err == nil {
 				break
 			}
-			log.Error(err)
+			log.WithField("err", err).Error("Redis writer error, reconnecting in 5 seconds...")
+			time.Sleep(5 * time.Second)
 		}
 	}()
 

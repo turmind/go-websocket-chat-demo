@@ -1,0 +1,47 @@
+{
+  "name": "go-websocket-chat-demo",
+  "version": "2.0.0",
+  "description": "现代化 Go WebSocket 聊天应用 - 具有美观界面和丰富功能的实时聊天系统",
+  "keywords": [
+    "websocket",
+    "chat",
+    "go",
+    "redis",
+    "real-time",
+    "modern-ui",
+    "responsive"
+  ],
+  "author": "Go WebSocket Chat Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/go-websocket-chat-demo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/go-websocket-chat-demo/issues"
+  },
+  "homepage": "https://github.com/your-username/go-websocket-chat-demo#readme",
+  "scripts": {
+    "dev": "docker-compose up",
+    "build": "go build -o go-websocket-chat-demo .",
+    "test": "go test ./...",
+    "test:frontend": "echo 'Open http://localhost:8080/test-runner.html in browser'",
+    "lint": "golangci-lint run",
+    "format": "gofmt -w . && goimports -w .",
+    "docker:build": "docker build -t websocket-chat .",
+    "docker:run": "docker run -p 8080:8080 websocket-chat",
+    "deploy:heroku": "git push heroku main"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead",
+    "not ie 11"
+  ]
+}

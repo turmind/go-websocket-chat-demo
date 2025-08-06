@@ -1,39 +1,236 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
   <head>
-    <title>Go Websocket Chat Demo</title>
-    <link href="css/bootstrap.min.css" rel="stylesheet" media="screen">
-    <link href="css/application.css" rel="stylesheet" media="screen">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>现代聊天界面 - Go WebSocket Chat</title>
+    <meta name="description" content="基于Go WebSocket的现代化即时通讯界面">
+    
+    <!-- Stylesheets -->
+    <link href="css/application.css" rel="stylesheet" media="screen">
+    <link href="css/modern-chat.css" rel="stylesheet" media="screen">
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="js/jquery-2.0.3.min.js" as="script">
+    <link rel="preload" href="js/reconnecting-websocket.min.js" as="script">
+    <link rel="preload" href="js/application.js" as="script">
   </head>
   <body>
-    <div class="container">
-      <div class="jumbotron">
-        <h1>Go Websocket Chat Demo</h1>
-        <hr />
-        <p>This is a Go WebSocket Chat Demo. The code lives <a href="https://github.com/heroku-examples/go-websocket-chat-demo">on GitHub</a>. </p>
-        <p>You can find the full guide in <a href="https://devcenter.heroku.com/articles/go-websockets">Heroku DevCenter</a>.</p>
-      </div>
-      <form id="input-form" class="form-inline">
-        <div class="form-group">
-          <input id="input-handle" type="text" class="form-control" placeholder="Enter handle" autofocus />
+    <!-- Skip links for accessibility -->
+    <a href="#messages-container" class="skip-link">跳转到消息区域</a>
+    <a href="#message-input" class="skip-link">跳转到消息输入框</a>
+    <a href="#contact-list" class="skip-link">跳转到联系人列表</a>
+    <!-- Main Chat Container -->
+    <div class="chat-container" role="main" aria-label="聊天应用">
+      
+      <!-- Left Sidebar - Contact List -->
+      <aside class="sidebar" role="complementary" aria-label="联系人列表">
+        <!-- Sidebar Header -->
+        <header class="sidebar-header">
+          <h1 class="sidebar-title">聊天室</h1>
+          <p class="sidebar-subtitle" id="online-count">0 人在线</p>
+        </header>
+        
+        <!-- Contact List -->
+        <div id="contact-list" class="contact-list" role="list" aria-label="在线用户列表">
+          <!-- Default group chat item -->
+          <div class="contact-item active" role="listitem" tabindex="0" aria-selected="true" data-contact-id="group">
+            <div class="contact-avatar">
+              <div class="avatar group-avatar" aria-hidden="true">
+                <span>全</span>
+              </div>
+              <div class="status-indicator online" aria-label="在线"></div>
+            </div>
+            <div class="contact-info">
+              <div class="contact-name">全体成员</div>
+              <div class="contact-status">群聊</div>
+              <div class="contact-last-message">欢迎来到聊天室</div>
+            </div>
+            <div class="contact-meta">
+              <div class="contact-time">刚刚</div>
+              <div class="contact-badge" style="display: none;">
+                <span class="badge-count">0</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Dynamic contact items will be inserted here -->
+          <!-- Example contact item structure for reference -->
+          <!--
+          <div class="contact-item" role="listitem" tabindex="0" aria-selected="false" data-contact-id="user123">
+            <div class="contact-avatar">
+              <div class="avatar user-avatar" style="background-color: #007bff;" aria-hidden="true">
+                <span>张</span>
+              </div>
+              <div class="status-indicator online" aria-label="在线"></div>
+            </div>
+            <div class="contact-info">
+              <div class="contact-name">张三</div>
+              <div class="contact-status">在线</div>
+              <div class="contact-last-message">你好，大家好！</div>
+            </div>
+            <div class="contact-meta">
+              <div class="contact-time">10:30</div>
+              <div class="contact-badge">
+                <span class="badge-count">2</span>
+              </div>
+            </div>
+          </div>
+          -->
         </div>
-        <div class="form-group">
-          <input id="input-text" type="text" class="form-control" placeholder="Enter chat text here!" autofocus />
+
+      </aside>
+      
+      <!-- Right Chat Area -->
+      <main class="chat-area" role="main" aria-label="聊天区域">
+        <!-- Chat Header -->
+        <header class="chat-header">
+          <button class="mobile-menu-toggle d-md-none" aria-label="打开联系人列表" aria-expanded="false">
+            <span class="hamburger-icon" aria-hidden="true">☰</span>
+          </button>
+          <div class="chat-header-info">
+            <h2 class="chat-title">全体成员</h2>
+            <p class="chat-subtitle" id="chat-status">连接中...</p>
+          </div>
+          <button class="settings-button" aria-label="用户设置" title="用户设置">
+            <span aria-hidden="true">⚙️</span>
+          </button>
+        </header>
+        
+        <!-- Messages Container -->
+        <div class="messages-container" role="log" aria-label="聊天消息" aria-live="polite" id="messages-container">
+          <!-- Welcome message -->
+          <div class="message system" role="article">
+            <div class="message-content">
+              <div class="message-bubble">
+                欢迎来到聊天室！请设置您的用户名开始聊天。
+              </div>
+            </div>
+          </div>
+          
+          <!-- Messages will be dynamically inserted here -->
         </div>
-        <button class="btn btn-primary" type="submit">Send</button>
-      </form>
-      <div class="page-header">
-        <h1>Chat Log</h1>
-      </div>
-      <div id="chat-text">
+        
+        <!-- Message Input Area -->
+        <div class="message-input-container">
+          <form id="message-form" class="message-input-form" aria-label="发送消息">
+            <!-- Hidden handle input for compatibility -->
+            <input id="input-handle" type="hidden" value="">
+            
+            <div class="message-input-wrapper">
+              <textarea 
+                id="message-input" 
+                class="message-input" 
+                placeholder="输入消息..." 
+                rows="1"
+                maxlength="1000"
+                aria-label="消息输入框"
+                aria-describedby="message-help"
+              ></textarea>
+              <div id="message-help" class="sr-only">按 Enter 发送消息，Shift+Enter 换行</div>
+              <div class="input-status-indicator"></div>
+              <div class="character-count"></div>
+            </div>
+            
+            <button 
+              type="submit" 
+              class="send-button" 
+              aria-label="发送消息"
+              disabled
+            >
+              <span aria-hidden="true">发送</span>
+            </button>
+          </form>
+        </div>
+      </main>
+    </div>
+    
+    <!-- User Settings Modal -->
+    <div id="user-settings-modal" class="modal-overlay" role="dialog" aria-labelledby="settings-modal-title" aria-hidden="true">
+      <div class="modal-container">
+        <div class="modal-header">
+          <h2 id="settings-modal-title" class="modal-title">用户设置</h2>
+          <button class="modal-close" aria-label="关闭设置" title="关闭">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+        
+        <div class="modal-body">
+          <form id="user-settings-form" aria-label="用户设置表单">
+            <div class="form-group">
+              <label for="user-name-input" class="form-label">用户名</label>
+              <input 
+                id="user-name-input" 
+                type="text" 
+                class="form-control" 
+                placeholder="请输入用户名" 
+                maxlength="20" 
+                required
+                aria-describedby="username-help"
+              >
+              <small id="username-help" class="form-text">用户名将显示在聊天中，最多20个字符</small>
+            </div>
+            
+            <div class="form-group">
+              <label for="user-avatar-select" class="form-label">选择头像</label>
+              <select id="user-avatar-select" class="form-control" aria-describedby="avatar-help">
+                <option value="default">默认头像</option>
+              </select>
+              <small id="avatar-help" class="form-text">选择预设头像或使用自定义表情</small>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">头像预览</label>
+              <div class="avatar-preview-container">
+                <div id="avatar-preview" class="avatar-preview">
+                  <div class="avatar">
+                    <span>?</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="custom-emoji-input" class="form-label">自定义表情头像</label>
+              <input 
+                id="custom-emoji-input" 
+                type="text" 
+                class="form-control" 
+                placeholder="输入表情符号，如 😀" 
+                maxlength="2"
+                aria-describedby="emoji-help"
+              >
+              <small id="emoji-help" class="form-text">输入表情符号来创建个性化头像</small>
+            </div>
+          </form>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-danger" id="reset-settings" title="重置所有设置到默认值">重置设置</button>
+          <button type="button" class="btn btn-secondary" id="cancel-settings">取消</button>
+          <button type="submit" form="user-settings-form" class="btn btn-primary">保存设置</button>
+        </div>
       </div>
     </div>
 
-    <a href="https://github.com/heroku-examples/go-websocket-chat-demo"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"></a>
+    <!-- Connection Status Indicator -->
+    <div id="connection-status" class="connection-status" role="status" aria-live="polite">
+      <span class="status-text">连接中...</span>
+    </div>
+    
+    <!-- Legacy chat-text div for backward compatibility -->
+    <div id="chat-text" style="display: none;"></div>
+    
+    <!-- Legacy input-form for backward compatibility -->
+    <form id="input-form" style="display: none;">
+      <input id="input-text" type="text">
+    </form>
 
+    <!-- Scripts -->
     <script type="text/javascript" src="js/jquery-2.0.3.min.js"></script>
     <script type="text/javascript" src="js/reconnecting-websocket.min.js"></script>
+    <script type="text/javascript" src="js/performance-optimizer.js"></script>
     <script type="text/javascript" src="js/application.js"></script>
+    <script type="text/javascript" src="js/integration-test.js"></script>
   </body>
 </html>

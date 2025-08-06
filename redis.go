@@ -72,10 +72,23 @@ func (rr *redisReceiver) run() error {
 	l := log.WithField("channel", Channel)
 	conn := rr.pool.Get()
 	defer conn.Close()
+
+	// Test connection before subscribing
+	if err := conn.Err(); err != nil {
+		return errors.Wrap(err, "Redis connection error before subscribe")
+	}
+
 	psc := redis.PubSubConn{Conn: conn}
-	psc.Subscribe(Channel)
+	if err := psc.Subscribe(Channel); err != nil {
+		return errors.Wrap(err, "Failed to subscribe to Redis channel")
+	}
+
 	go rr.connHandler()
+
 	for {
+		// Set receive timeout to detect connection issues
+		conn.Do("PING") // Keep connection alive
+
 		switch v := psc.Receive().(type) {
 		case redis.Message:
 			l.WithField("message", string(v.Data)).Info("Redis Message Received")
@@ -90,6 +103,7 @@ func (rr *redisReceiver) run() error {
 				"count": v.Count,
 			}).Println("Redis Subscription Received")
 		case error:
+			l.WithField("err", v).Error("Redis subscription error, will reconnect")
 			return errors.Wrap(v, "Error while subscribed to Redis channel")
 		default:
 			l.WithField("v", v).Info("Unknown Redis receive during subscription")
@@ -173,8 +187,14 @@ func (rw *redisWriter) run() error {
 	conn := rw.pool.Get()
 	defer conn.Close()
 
+	// Test connection before starting
+	if err := conn.Err(); err != nil {
+		return errors.Wrap(err, "Redis connection error in writer")
+	}
+
 	for data := range rw.messages {
 		if err := writeToRedis(conn, data); err != nil {
+			log.WithField("err", err).Error("Failed to write to Redis, will reconnect")
 			rw.publish(data) // attempt to redeliver later
 			return err
 		}

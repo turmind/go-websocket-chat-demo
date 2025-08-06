@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Chat UI - Unit Tests</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .test-header {
+            background: #007bff;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .test-header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        
+        .test-controls {
+            padding: 20px;
+            border-bottom: 1px solid #dee2e6;
+            text-align: center;
+        }
+        
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 0 5px;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        
+        .test-output {
+            padding: 20px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            background: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .test-results {
+            padding: 20px;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        .result-summary {
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .result-item {
+            padding: 15px;
+            border-radius: 4px;
+            min-width: 100px;
+        }
+        
+        .result-passed {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .result-failed {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .result-total {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: #28a745;
+            transition: width 0.3s ease;
+        }
+        
+        .test-status {
+            text-align: center;
+            padding: 10px;
+            font-weight: bold;
+        }
+        
+        .status-running {
+            color: #007bff;
+        }
+        
+        .status-success {
+            color: #28a745;
+        }
+        
+        .status-error {
+            color: #dc3545;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        #console-output {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 11px;
+            line-height: 1.3;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>🧪 Modern Chat UI - Unit Tests</h1>
+            <p>Comprehensive testing suite for chat application components</p>
+        </div>
+        
+        <div class="test-controls">
+            <button id="run-tests" class="btn">▶️ Run Unit Tests</button>
+            <button id="run-integration-tests" class="btn">🔗 Run Integration Tests</button>
+            <button id="run-e2e-tests" class="btn">🎭 Run E2E Tests</button>
+            <button id="run-all-tests" class="btn">🚀 Run All Tests</button>
+            <button id="clear-output" class="btn btn-secondary">🗑️ Clear Output</button>
+            <button id="toggle-output" class="btn btn-secondary">👁️ Toggle Console</button>
+        </div>
+        
+        <div class="test-results">
+            <div id="test-status" class="test-status">
+                Ready to run tests
+            </div>
+            
+            <div id="result-summary" class="result-summary hidden">
+                <div class="result-item result-passed">
+                    <div>✅ Passed</div>
+                    <div id="passed-count">0</div>
+                </div>
+                <div class="result-item result-failed">
+                    <div>❌ Failed</div>
+                    <div id="failed-count">0</div>
+                </div>
+                <div class="result-item result-total">
+                    <div>📊 Total</div>
+                    <div id="total-count">0</div>
+                </div>
+            </div>
+            
+            <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
+            </div>
+        </div>
+        
+        <div class="test-output">
+            <div id="console-output"></div>
+        </div>
+    </div>
+
+    <!-- Load dependencies -->
+    <script src="js/jquery-2.0.3.min.js"></script>
+    <script src="js/reconnecting-websocket.min.js"></script>
+    
+    <!-- Load test framework -->
+    <script src="js/test-framework.js"></script>
+    
+    <!-- Load application code -->
+    <script src="js/application.js"></script>
+    
+    <!-- Load test validation -->
+    <script src="js/test-validation.js"></script>
+    
+    <!-- Load performance optimizer -->
+    <script src="js/performance-optimizer.js"></script>
+    
+    <!-- Load test suites -->
+    <script src="js/tests/user-model.test.js"></script>
+    <script src="js/tests/message-model.test.js"></script>
+    <script src="js/tests/chat-state.test.js"></script>
+    <script src="js/tests/avatar-generator.test.js"></script>
+    <script src="js/tests/websocket-integration.test.js"></script>
+    <script src="js/tests/responsive-layout.test.js"></script>
+    
+    <!-- Load integration tests -->
+    <script src="js/integration-test.js"></script>
+    
+    <!-- Load E2E tests -->
+    <script src="js/e2e-test.js"></script>
+    
+    <script>
+        // Console output capture
+        const originalConsole = {
+            log: console.log,
+            error: console.error,
+            warn: console.warn,
+            group: console.group,
+            groupEnd: console.groupEnd
+        };
+        
+        let consoleOutput = '';
+        const outputElement = document.getElementById('console-output');
+        
+        function captureConsole() {
+            ['log', 'error', 'warn', 'group', 'groupEnd'].forEach(method => {
+                console[method] = function(...args) {
+                    const message = args.map(arg => 
+                        typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+                    ).join(' ');
+                    
+                    consoleOutput += message + '\n';
+                    outputElement.textContent = consoleOutput;
+                    outputElement.scrollTop = outputElement.scrollHeight;
+                    
+                    // Also call original console method
+                    originalConsole[method].apply(console, args);
+                };
+            });
+        }
+        
+        function restoreConsole() {
+            Object.assign(console, originalConsole);
+        }
+        
+        function clearOutput() {
+            consoleOutput = '';
+            outputElement.textContent = '';
+        }
+        
+        function updateResults(results) {
+            document.getElementById('passed-count').textContent = results.passed;
+            document.getElementById('failed-count').textContent = results.failed;
+            document.getElementById('total-count').textContent = results.total;
+            
+            const successRate = results.total > 0 ? (results.passed / results.total * 100) : 0;
+            document.getElementById('progress-fill').style.width = successRate + '%';
+            
+            document.getElementById('result-summary').classList.remove('hidden');
+            
+            const statusElement = document.getElementById('test-status');
+            if (results.failed === 0 && results.total > 0) {
+                statusElement.textContent = '🎉 All tests passed!';
+                statusElement.className = 'test-status status-success';
+            } else if (results.failed > 0) {
+                statusElement.textContent = `⚠️ ${results.failed} test(s) failed`;
+                statusElement.className = 'test-status status-error';
+            } else {
+                statusElement.textContent = 'No tests run';
+                statusElement.className = 'test-status';
+            }
+        }
+        
+        // Event listeners
+        document.getElementById('run-tests').addEventListener('click', function() {
+            runUnitTests(this);
+        });
+        
+        document.getElementById('run-integration-tests').addEventListener('click', function() {
+            runIntegrationTests(this);
+        });
+        
+        document.getElementById('run-e2e-tests').addEventListener('click', function() {
+            runE2ETests(this);
+        });
+        
+        document.getElementById('run-all-tests').addEventListener('click', function() {
+            runAllTests(this);
+        });
+        
+        function runUnitTests(button) {
+            button.disabled = true;
+            button.textContent = '⏳ Running Unit Tests...';
+            
+            document.getElementById('test-status').textContent = 'Running unit tests...';
+            document.getElementById('test-status').className = 'test-status status-running';
+            
+            clearOutput();
+            captureConsole();
+            
+            setTimeout(() => {
+                try {
+                    const results = testFramework.runTests();
+                    updateResults(results);
+                } catch (error) {
+                    console.error('Error running unit tests:', error);
+                    document.getElementById('test-status').textContent = 'Error running unit tests';
+                    document.getElementById('test-status').className = 'test-status status-error';
+                } finally {
+                    restoreConsole();
+                    button.disabled = false;
+                    button.textContent = '▶️ Run Unit Tests';
+                }
+            }, 100);
+        }
+        
+        function runIntegrationTests(button) {
+            button.disabled = true;
+            button.textContent = '⏳ Running Integration Tests...';
+            
+            document.getElementById('test-status').textContent = 'Running integration tests...';
+            document.getElementById('test-status').className = 'test-status status-running';
+            
+            clearOutput();
+            captureConsole();
+            
+            setTimeout(async () => {
+                try {
+                    if (typeof IntegrationTestSuite !== 'undefined') {
+                        const integrationTests = new IntegrationTestSuite();
+                        const report = await integrationTests.runAllTests();
+                        
+                        // Convert integration test results to match unit test format
+                        const results = {
+                            passed: report.summary.passed,
+                            failed: report.summary.failed,
+                            total: report.summary.total
+                        };
+                        
+                        updateResults(results);
+                        console.log('📊 Integration Test Report:', report);
+                    } else {
+                        throw new Error('Integration test suite not available');
+                    }
+                } catch (error) {
+                    console.error('Error running integration tests:', error);
+                    document.getElementById('test-status').textContent = 'Error running integration tests';
+                    document.getElementById('test-status').className = 'test-status status-error';
+                } finally {
+                    restoreConsole();
+                    button.disabled = false;
+                    button.textContent = '🔗 Run Integration Tests';
+                }
+            }, 1000);
+        }
+        
+        function runE2ETests(button) {
+            button.disabled = true;
+            button.textContent = '⏳ Running E2E Tests...';
+            
+            document.getElementById('test-status').textContent = 'Running end-to-end tests...';
+            document.getElementById('test-status').className = 'test-status status-running';
+            
+            clearOutput();
+            captureConsole();
+            
+            setTimeout(async () => {
+                try {
+                    if (typeof E2ETestSuite !== 'undefined') {
+                        const e2eTests = new E2ETestSuite();
+                        const report = await e2eTests.runAllTests();
+                        
+                        // Convert E2E test results to match unit test format
+                        const results = {
+                            passed: report.summary.passed,
+                            failed: report.summary.failed,
+                            total: report.summary.total
+                        };
+                        
+                        updateResults(results);
+                        console.log('🎭 E2E Test Report:', report);
+                    } else {
+                        throw new Error('E2E test suite not available');
+                    }
+                } catch (error) {
+                    console.error('Error running E2E tests:', error);
+                    document.getElementById('test-status').textContent = 'Error running E2E tests';
+                    document.getElementById('test-status').className = 'test-status status-error';
+                } finally {
+                    restoreConsole();
+                    button.disabled = false;
+                    button.textContent = '🎭 Run E2E Tests';
+                }
+            }, 2000);
+        }
+        
+        function runAllTests(button) {
+            button.disabled = true;
+            button.textContent = '⏳ Running All Tests...';
+            
+            document.getElementById('test-status').textContent = 'Running all tests...';
+            document.getElementById('test-status').className = 'test-status status-running';
+            
+            clearOutput();
+            captureConsole();
+            
+            setTimeout(async () => {
+                try {
+                    // Run unit tests first
+                    console.log('🧪 Running Unit Tests...');
+                    const unitResults = testFramework.runTests();
+                    
+                    // Run integration tests
+                    console.log('🔗 Running Integration Tests...');
+                    let integrationResults = { passed: 0, failed: 0, total: 0 };
+                    
+                    if (typeof IntegrationTestSuite !== 'undefined') {
+                        const integrationTests = new IntegrationTestSuite();
+                        const report = await integrationTests.runAllTests();
+                        integrationResults = {
+                            passed: report.summary.passed,
+                            failed: report.summary.failed,
+                            total: report.summary.total
+                        };
+                    }
+                    
+                    // Run E2E tests
+                    console.log('🎭 Running E2E Tests...');
+                    let e2eResults = { passed: 0, failed: 0, total: 0 };
+                    
+                    if (typeof E2ETestSuite !== 'undefined') {
+                        const e2eTests = new E2ETestSuite();
+                        const report = await e2eTests.runAllTests();
+                        e2eResults = {
+                            passed: report.summary.passed,
+                            failed: report.summary.failed,
+                            total: report.summary.total
+                        };
+                    }
+                    
+                    // Combine results
+                    const combinedResults = {
+                        passed: unitResults.passed + integrationResults.passed + e2eResults.passed,
+                        failed: unitResults.failed + integrationResults.failed + e2eResults.failed,
+                        total: unitResults.total + integrationResults.total + e2eResults.total
+                    };
+                    
+                    updateResults(combinedResults);
+                    
+                    console.log('🎉 All tests completed!');
+                    console.log(`📊 Unit Tests: ${unitResults.passed}/${unitResults.total} passed`);
+                    console.log(`📊 Integration Tests: ${integrationResults.passed}/${integrationResults.total} passed`);
+                    console.log(`📊 E2E Tests: ${e2eResults.passed}/${e2eResults.total} passed`);
+                    console.log(`📊 Total: ${combinedResults.passed}/${combinedResults.total} passed`);
+                    
+                } catch (error) {
+                    console.error('Error running all tests:', error);
+                    document.getElementById('test-status').textContent = 'Error running tests';
+                    document.getElementById('test-status').className = 'test-status status-error';
+                } finally {
+                    restoreConsole();
+                    button.disabled = false;
+                    button.textContent = '🚀 Run All Tests';
+                }
+            }, 1000);
+        }
+        
+        document.getElementById('clear-output').addEventListener('click', clearOutput);
+        
+        document.getElementById('toggle-output').addEventListener('click', function() {
+            const output = document.querySelector('.test-output');
+            if (output.style.display === 'none') {
+                output.style.display = 'block';
+                this.textContent = '👁️ Hide Console';
+            } else {
+                output.style.display = 'none';
+                this.textContent = '👁️ Show Console';
+            }
+        });
+        
+        // Initialize
+        captureConsole();
+        console.log('🧪 Test runner initialized. Choose a test suite to begin.');
+        console.log('📋 Available test suites:');
+        console.log('  🔧 Unit Tests:');
+        console.log('    - User Model Tests');
+        console.log('    - Message Model Tests');
+        console.log('    - Chat State Tests');
+        console.log('    - Avatar Generator Tests');
+        console.log('    - WebSocket Integration Tests');
+        console.log('    - Responsive Layout Tests');
+        console.log('  🔗 Integration Tests:');
+        console.log('    - Component Communication');
+        console.log('    - End-to-End Workflows');
+        console.log('    - Performance Metrics');
+        console.log('  🎭 E2E Tests:');
+        console.log('    - Complete User Workflows');
+        console.log('    - Real User Interactions');
+        console.log('    - Performance Under Load');
+        restoreConsole();
+    </script>
+</body>
+</html>
